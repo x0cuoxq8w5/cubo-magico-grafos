@@ -74,4 +74,20 @@ public class CubeState {
         return new CubeState(cube);
     }
 
+
+    public String getBackwardsPath() {
+        StringBuilder backwardsPath =  new StringBuilder();
+        String workingPath = this.path;
+        while (!workingPath.isEmpty()) {
+            if (modifiers.contains(workingPath.charAt(workingPath.length()-1))) {
+                backwardsPath.append(workingPath.substring(workingPath.length()-2));
+                workingPath = workingPath.substring(0, workingPath.length()-2);
+            }
+            else {
+                backwardsPath.append(workingPath.substring(workingPath.length()-1));
+                workingPath = workingPath.substring(0, workingPath.length()-1);
+            }
+        }
+        return backwardsPath.toString();
+    }
 }
