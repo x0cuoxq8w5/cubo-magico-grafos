@@ -60,7 +60,7 @@ public class Cube {
         /*newState[18] = state[24]; newState[19] = state[21]; newState[20] = state[18];
         newState[21] = state[25]; newState[22] = state[22]; newState[23] = state[19];
         newState[24] = state[26]; newState[25] = state[23]; newState[26] = state[20];*/
-        rotateFace(newState,2);
+        rotateFace(newState,Faces.FRONT.value);
 
         // Guardamos a face do Topo para não sobrescrevê-la
         byte tempUp1 = state[6];
@@ -68,9 +68,9 @@ public class Cube {
         byte tempUp3 = state[8];
 
         // Esquerda (coluna dir) -> Topo (linha baixo)
-        newState[6] = state[15];
-        newState[7] = state[12];
-        newState[8] = state[9];
+        newState[6] = state[17];
+        newState[7] = state[14];
+        newState[8] = state[11];
 
         // Baixo (linha cima) -> Esquerda (coluna dir)
         newState[17] = state[47];
@@ -83,9 +83,9 @@ public class Cube {
         newState[45] = state[27];
 
         // Topo (temp) -> Direita (coluna esq)
-        newState[33] = tempUp1;
+        newState[27] = tempUp1;
         newState[30] = tempUp2;
-        newState[27] = tempUp3;
+        newState[33] = tempUp3;
 
         return new Cube(newState);
     }
@@ -102,7 +102,7 @@ public class Cube {
         /*newState[0] = state[6]; newState[1] = state[3]; newState[2] = state[0];
         newState[3] = state[7]; newState[4] = state[4]; newState[5] = state[1];
         newState[6] = state[8]; newState[7] = state[5]; newState[8] = state[2];*/
-        rotateFace(newState,0);
+        rotateFace(newState,Faces.UP.value);
 
 
         byte tempF1 = state[27];
@@ -150,7 +150,7 @@ public class Cube {
         newState[33] = state[35];
         newState[34] = state[32];
         newState[35] = state[29];*/
-        rotateFace(newState,3);
+        rotateFace(newState,Faces.RIGHT.value);
 
 
         byte u0 = state[2], u1 = state[5], u2 = state[8];
@@ -166,25 +166,25 @@ public class Cube {
         newState[23] = d1;
         newState[26] = d2;
 
-        newState[47] = b0;
+        newState[53] = b0;
         newState[50] = b1;
-        newState[53] = b2;
+        newState[47] = b2;
 
         newState[42] = u0;
         newState[39] = u1;
         newState[36] = u2;
 
 
-        newState[2] = f2;
+        newState[2] = f0;
         newState[5] = f1;
-        newState[8] = f0;
+        newState[8] = f2;
 
         return new Cube(newState);
     }
     public Cube rotateLeftClockwise() {
         byte[] newState = this.state.clone();
 
-        rotateFace(newState,1);
+        rotateFace(newState,Faces.LEFT.value);
         /*newState[9]  = state[15];
         newState[10] = state[12];
         newState[11] = state[9];
@@ -237,7 +237,7 @@ public class Cube {
     }
     public Cube rotateDownClockwise() {
         byte[] newState = this.state.clone();
-        rotateFace(newState,5);
+        rotateFace(newState,Faces.DOWN.value);
         byte[]  l={state[15],state[16],state[17]},
                 f={state[24],state[25],state[26]},
                 r={state[33],state[34],state[35]},
@@ -246,12 +246,15 @@ public class Cube {
         newState[15] = b[0];
         newState[16] = b[1];
         newState[17] = b[2];
+
         newState[24] = l[0];
         newState[25] = l[1];
         newState[26] = l[2];
+
         newState[33] = f[0];
         newState[34] = f[1];
         newState[35] = f[2];
+
         newState[42] = r[0];
         newState[43] = r[1];
         newState[44] = r[2];
@@ -266,24 +269,26 @@ public class Cube {
     }
     public Cube rotateBackClockwise() {
         byte[] newState = this.state.clone();
-        rotateFace(newState,4);
+        rotateFace(newState,Faces.BACK.value);
         byte[]
                 l ={state[9],state[12],state[15]},
                 u ={state[0],state[1],state[2]},
                 r ={state[29],state[32],state[35]},
                 d ={state[51],state[52],state[53]};
 
-        newState[9] = u[0];
+        //isso tava trocado
+        newState[15] = u[0];
         newState[12] = u[1];
-        newState[15] = u[2];
+        newState[9] = u[2];
 
         newState[0] = r[0];
         newState[1] = r[1];
         newState[2] = r[2];
 
-        newState[29] = d[0];
+        //isso tambem
+        newState[35] = d[0];
         newState[32] = d[1];
-        newState[35] = d[2];
+        newState[29] = d[2];
 
         newState[51] = l[0];
         newState[52] = l[1];
