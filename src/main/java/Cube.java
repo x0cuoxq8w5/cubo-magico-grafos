@@ -301,4 +301,8 @@ public class Cube {
     public Cube rotateBackAntiClockwise() {
         return this.rotateBack180().rotateBackClockwise();
     }
+
+    public static int getFacePosition(int face, int position) {
+        return face*9+position;
+    }
 }
