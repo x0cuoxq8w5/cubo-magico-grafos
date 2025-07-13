@@ -1,4 +1,6 @@
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class CubeState {
@@ -39,6 +41,16 @@ public class CubeState {
     }
 
     private static final HashSet<Character> modifiers = new HashSet<>(Set.of('\'','2'));
+    private static final HashMap<Character,Character> independents = new HashMap<>(
+            Map.ofEntries(
+                    Map.entry('U','D'),
+                    Map.entry('D','U'),
+                    Map.entry('F','B'),
+                    Map.entry('B','F'),
+                    Map.entry('L','R'),
+                    Map.entry('R','L')
+            )
+    );
 
     public CubeState(Cube current, String path) {
         this.current = current;
@@ -93,12 +105,10 @@ public class CubeState {
     }
 
     public boolean isLastMoveSameType(Moves moves) {
-        String last;
         char type;
         if (this.path.length() >= 2) {
-            last = this.path.substring(this.path.length() - 2);
-            if(modifiers.contains(last.charAt(1))) type = last.charAt(0);
-            else type = last.charAt(1);
+            if(modifiers.contains(this.path.charAt(this.path.length()-1))) type = this.path.charAt(this.path.length()-2);
+            else type = this.path.charAt(this.path.length()-1);
         }
         else if (!this.path.isEmpty()) {
             type = this.path.charAt(0);
@@ -107,5 +117,44 @@ public class CubeState {
             return false;
         }
         return moves.value.charAt(0) == type;
+    }
+
+    public boolean isLastTwoIndependent(Moves moves) {
+        int offset = 0;
+        char[] types = new char[2];
+        char movetype;
+        if (this.path.length() > 3) {
+            if(modifiers.contains(this.path.charAt(this.path.length()-1))) { //F'B' || DFB'
+                offset++;
+            }
+            types[1] = this.path.charAt(this.path.length()-1-offset);
+            if(modifiers.contains(this.path.charAt(this.path.length()-2-offset))) { //F'B' || DF'B
+                offset++;
+            }
+            types[0] = this.path.charAt(this.path.length()-2-offset);
+        }
+        else if (this.path.length() == 3) {
+            if (modifiers.contains(this.path.charAt(2))) { //FB'
+                types[1] = this.path.charAt(1);
+                types[0] = this.path.charAt(0);
+            }
+            else if (modifiers.contains(this.path.charAt(1))) { //F'B
+                types[1] = this.path.charAt(2);
+                types[0] = this.path.charAt(0);
+            } //DFB
+            else {
+                types[1] = this.path.charAt(2);
+                types[0] = this.path.charAt(1);
+            }
+        }
+        else if (this.path.length() == 2 && !modifiers.contains(this.path.charAt(1))) {
+            types[1] = this.path.charAt(1);
+            types[0] = this.path.charAt(0);
+        }
+        else {
+            return false;
+        }
+        movetype = moves.value.charAt(0);
+        return (movetype == types[0] && independents.get(movetype) == types[1]);
     }
 }

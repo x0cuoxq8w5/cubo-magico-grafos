@@ -53,7 +53,7 @@ public class Searches {
                 if(!hashMap.containsKey(cost)) hashMap.put(cost, new LinkedList<CubeState>());
                 hashMap.get(cost).add(currentCubeState);
                 for (Moves moves : Moves.values()) {
-                    if (currentCubeState.isLastMoveSameType(moves)) continue;
+                    if (currentCubeState.isLastMoveSameType(moves) || currentCubeState.isLastTwoIndependent(moves)) continue;
                     CubeState newState = currentCubeState.applyMove(moves.value);
                     if (!visitedBack.contains(newState.current)) {
                         visitedBack.add(newState.current);
@@ -98,7 +98,7 @@ public class Searches {
                     continue;
                 }
                 for (Moves moves : Moves.values()) {
-                    if (currentState.isLastMoveSameType(moves)) continue;
+                    if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
                     CubeState newState = currentState.applyMove(moves.value);
                     if (!visitedFront.contains(newState.current)) {
                         visitedFront.add(newState.current);
@@ -107,11 +107,18 @@ public class Searches {
                 }
             }
             semaphore.acquireUninterruptibly();
-            System.out.println(frontierNodesDLS.size() + " frontiers da busca frontal");
+            int count = 0;
             for (CubeState dlsNode : frontierNodesDLS) {
-                Future<String> result = executorService.submit(new LimitDfsThread(dlsNode, limits));
-                //String result = limitDFS(dlsNode,limits);
-                if (!noResultStrings.contains(result.get())) return result.get();
+                count++;
+                System.out.println(count);
+                try {
+                    String result = executorService.submit(new LimitDfsThread(dlsNode, limits)).get();
+                    if (!noResultStrings.contains(result)) {
+                        return result;
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
             }
             return "SOLUTION NOT FOUND";
         }
@@ -153,7 +160,7 @@ public class Searches {
                 }
             }
             for (Moves moves : Moves.values()) {
-                if (currentState.isLastMoveSameType(moves)) continue;
+                if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
                 CubeState newState = currentState.applyMove(moves.value);
                 String result = limitDFS(newState,remainingDepth-1);
                 if (!noResultStrings.contains(result)) {
@@ -185,7 +192,7 @@ public class Searches {
                 }
             }
             for (Moves moves : Moves.values()) {
-                if (currentState.isLastMoveSameType(moves)) continue;
+                if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
                 CubeState newState = currentState.applyMove(moves.value);
                 String result = limitDFS(newState,remainingDepth-1);
                 //result = limitDFS(newState,remainingDepth-1);
