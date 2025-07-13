@@ -53,6 +53,7 @@ public class Searches {
                 if(!hashMap.containsKey(cost)) hashMap.put(cost, new LinkedList<CubeState>());
                 hashMap.get(cost).add(currentCubeState);
                 for (Moves moves : Moves.values()) {
+                    if (currentCubeState.isLastMoveSameType(moves)) continue;
                     CubeState newState = currentCubeState.applyMove(moves.value);
                     if (!visitedBack.contains(newState.current)) {
                         visitedBack.add(newState.current);
@@ -97,6 +98,7 @@ public class Searches {
                     continue;
                 }
                 for (Moves moves : Moves.values()) {
+                    if (currentState.isLastMoveSameType(moves)) continue;
                     CubeState newState = currentState.applyMove(moves.value);
                     if (!visitedFront.contains(newState.current)) {
                         visitedFront.add(newState.current);
@@ -151,6 +153,7 @@ public class Searches {
                 }
             }
             for (Moves moves : Moves.values()) {
+                if (currentState.isLastMoveSameType(moves)) continue;
                 CubeState newState = currentState.applyMove(moves.value);
                 Future<String> result = executorService.submit(new LimitDfsThread(newState,remainingDepth-1));
                 //result = limitDFS(newState,remainingDepth-1);

@@ -91,4 +91,21 @@ public class CubeState {
         }
         return backwardsPath.toString();
     }
+
+    public boolean isLastMoveSameType(Moves moves) {
+        String last;
+        char type;
+        if (this.path.length() >= 2) {
+            last = this.path.substring(this.path.length() - 2);
+            if(modifiers.contains(last.charAt(1))) type = last.charAt(0);
+            else type = last.charAt(1);
+        }
+        else if (!this.path.isEmpty()) {
+            type = this.path.charAt(0);
+        }
+        else {
+            return false;
+        }
+        return moves.value.charAt(0) == type;
+    }
 }
