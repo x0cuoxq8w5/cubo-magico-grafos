@@ -106,10 +106,10 @@ public class Searches {
                 }
             }
             semaphore.acquireUninterruptibly();
-            int count = 0;
+            int counter = 0;
             for (CubeState dlsNode : frontierNodesDLS) {
+                System.out.println(counter++);
                 String result = limitDFS(dlsNode,limits);
-                System.out.println(result);
                 if (!noResultStrings.contains(result)) return result;
             }
             return "SOLUTION NOT FOUND";
@@ -118,9 +118,6 @@ public class Searches {
         public String limitDFS(CubeState currentState, int remainingDepth) throws ExecutionException, InterruptedException {
             int frontCost = currentState.totalCost;
             //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
-            if(currentState.path.contains("FUFU")) {
-                System.out.println("abababababa");
-            }
             StringBuilder fullPath =  new StringBuilder();
             if (remainingDepth == 0) {
                 if(hashMap.containsKey(frontCost)) {
