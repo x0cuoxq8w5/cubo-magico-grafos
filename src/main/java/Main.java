@@ -6,9 +6,12 @@ import java.util.List;
 public class Main {
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Cube c = new Cube(Cube.SOLVED_STATE);
-        System.out.println(Arrays.toString(c.rotateFrontClockwise().state));
+        CubeState cs = new CubeState(c.rotateBackClockwise().rotateFrontClockwise().rotateRight180().rotateLeft180().rotateUpClockwise().rotateDownClockwise());
+        System.out.println(Arrays.toString(cs.current.state));
+        String result = Searches.solveCubeParallelBidirectional(cs);
+        System.out.println("RESULTADO: " + result);
     }
 
 }

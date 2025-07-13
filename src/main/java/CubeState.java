@@ -40,24 +40,24 @@ public class CubeState {
 
     private static final HashSet<Character> modifiers = new HashSet<>(Set.of('\'','2'));
 
-    public CubeState(Cube current, String path, int totalCost, int[] faceCost) {
+    public CubeState(Cube current, String path) {
         this.current = current;
         this.path = path;
-        this.totalCost = this.calculateCost();
         this.faceCost = this.calculateFaceCost();
+        this.totalCost = this.calculateCost();
     }
 
     public CubeState(Cube current) {
         this.current = current;
         this.path = "";
-        this.totalCost = this.calculateCost();
         this.faceCost = this.calculateFaceCost();
+        this.totalCost = this.calculateCost();
     }
 
     public int getDepth() {
         int counter = 0;
         String workingPath = this.path;
-        while (!workingPath.isEmpty()) {
+        while (workingPath.length() > 1) {
             if(modifiers.contains(workingPath.charAt(1))) {
                 workingPath = workingPath.substring(2);
             }
@@ -71,7 +71,8 @@ public class CubeState {
 
     public CubeState applyMove(String move) {
         Cube cube = this.current.applyMove(move);
-        return new CubeState(cube);
+        String path = this.path+move;
+        return new CubeState(cube,path);
     }
 
 
