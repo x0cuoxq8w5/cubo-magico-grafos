@@ -1,209 +1,191 @@
 import java.util.*;
-import java.util.concurrent.*;
 
 public class Searches {
-    private static final int hashLimit = 3;
-    private static final int limits = 5;
-    static ConcurrentHashMap<Integer, List<CubeState>> hashMap = new ConcurrentHashMap<>();
-    static HashSet<Cube> visitedFront = new HashSet<>();
-    static HashSet<Cube> visitedBack = new HashSet<>();
-    static final HashSet<String> noResultStrings =  new HashSet<>(Set.of("SOLUTION NOT FOUND","NO MATCHES","NO SOLUTION FOR THIS PATH"));
-    static Semaphore semaphore = new Semaphore(1);
-    static ExecutorService executorService = Executors.newFixedThreadPool(8); //mudar caso necessario
+    private static final int HASH_LIMIT = 3;
+    private static final int BFS_DLS_LIMIT = 5;
 
-    public static String solveCubeParallelBidirectional(CubeState scrambled) throws Exception {
-        System.out.println("Comecou...");
+    private static Map<Integer, List<CubeState>> hashMap;
+    private static Set<Cube> visitedFront;
+    private static Set<Cube> visitedBack;
+
+    private static final Set<String> NO_RESULT_STRINGS = Set.of("SOLUTION NOT FOUND", "NO MATCHES", "NO SOLUTION FOR THIS PATH");
+
+    public static String solveCube(CubeState scrambled) {
+        System.out.println("Iniciando busca sequencial...");
+        hashMap = new HashMap<>();
+        visitedFront = new HashSet<>();
+        visitedBack = new HashSet<>();
+
         CubeState solvedState = new CubeState(new Cube(Cube.SOLVED_STATE));
-        GenerateHashMapThread generateHashMapThread = new GenerateHashMapThread(solvedState);
-        generateHashMapThread.start();
-        FrontSearchThread frontSearchThread = new FrontSearchThread(scrambled);
-        String result = frontSearchThread.call();
-        if(result != null) {
-            System.out.println("RETURN!");
-            generateHashMapThread.interrupt();;
-        }
+        generateHashMap(solvedState);
+        System.out.println("HashMap gerado com " + hashMap.size() + " chaves de custo.");
+
+        String result = frontSearch(scrambled);
+        System.out.println("Busca finalizada.");
         return result;
     }
 
+    private static void generateHashMap(CubeState startNode) {
+        ArrayDeque<CubeState> queue = new ArrayDeque<>();
+        queue.add(startNode);
+        visitedBack.add(startNode.current);
 
-    static class GenerateHashMapThread extends Thread {
-        CubeState cubeState;
-        public GenerateHashMapThread(CubeState solvedState) {
-            this.cubeState = solvedState;
-        }
+        while (!queue.isEmpty()) {
+            CubeState current = queue.remove();
+            
+            int cost = current.calculateCost();
+            hashMap.computeIfAbsent(cost, k -> new LinkedList<>()).add(current);
 
-        @Override
-        public void run() {
-            generateHashMap();
-        }
+            if (current.getDepth() >= HASH_LIMIT) {
+                continue;
+            }
 
-        public void generateHashMap() {
-            System.out.println("Gerando hashmap...");
-            semaphore.acquireUninterruptibly();
-            System.out.println("Hashmap entrou no semaforo");
-            ArrayDeque<CubeState> queueBFS = new ArrayDeque<>();
-            queueBFS.add(cubeState);
-            visitedBack.add(cubeState.current);
-            while (!queueBFS.isEmpty() && !Thread.currentThread().isInterrupted()) {
-                int cost, currentDepth;
-                CubeState currentCubeState = queueBFS.pop(); //remove o primeiro elemento da fila
-                currentDepth = currentCubeState.getDepth();
-                if (currentDepth > hashLimit) continue; //supondo que e o continue de iteracao mesmo
-                cost = cubeState.calculateCost();
-                if(!hashMap.containsKey(cost)) hashMap.put(cost, new LinkedList<CubeState>());
-                hashMap.get(cost).add(currentCubeState);
-                for (Moves moves : Moves.values()) {
-                    if (currentCubeState.isLastMoveSameType(moves) || currentCubeState.isLastTwoIndependent(moves)) continue;
-                    CubeState newState = currentCubeState.applyMove(moves.value);
-                    if (!visitedBack.contains(newState.current)) {
-                        visitedBack.add(newState.current);
-                        queueBFS.add(newState);
-                    }
+            for (Moves move : Moves.values()) {
+                 if (isSameFaceAsLast(startNode.path, move.value)) {
+                continue;
+            }
+                CubeState newState = current.applyMove(move.value);
+                if (visitedBack.add(newState.current)) {
+                    queue.add(newState);
                 }
             }
-            semaphore.release();
         }
     }
 
-    static class FrontSearchThread implements Callable<String> {
-        CubeState cubeState;
+    private static String frontSearch(CubeState startNode) {
+        ArrayDeque<CubeState> queue = new ArrayDeque<>();
+        queue.add(startNode);
+        visitedFront.add(startNode.current);
+        List<CubeState> frontierNodes = new LinkedList<>();
 
-        public FrontSearchThread(CubeState cubeState) {
-            this.cubeState = cubeState;
-        }
+        while (!queue.isEmpty()) {
+            CubeState current = queue.remove();
+            if (current.totalCost == 0) return current.path;
 
-        @Override
-        public String call() throws Exception {
-            return frontSearch();
-        }
+            if (current.getDepth() == BFS_DLS_LIMIT) {
+                frontierNodes.add(current);
+                continue;
+            }
+            if (current.getDepth() > BFS_DLS_LIMIT) continue;
 
-        private String frontSearch() throws ExecutionException, InterruptedException {
-            System.out.println("Busca frontal...");
-            ArrayDeque<CubeState> queueBFS = new ArrayDeque<>();
-            queueBFS.add(cubeState);
-            visitedFront.add(cubeState.current);
-            LinkedList<CubeState> frontierNodesDLS = new LinkedList<>();
-            while (!queueBFS.isEmpty()) {
-                int currentDepth;
-                CubeState currentState = queueBFS.pop();
-                if (currentState.totalCost == 0) {
-                    return currentState.path;
-                }
-                currentDepth = currentState.getDepth();
-                if (currentDepth == limits) {
-                    frontierNodesDLS.add(currentState);
+            for (Moves move : Moves.values()) {
+                
+                if (isSameFaceAsLast(current.path, move.value)) {
                     continue;
                 }
-                if (currentDepth > limits) {
-                    continue;
-                }
-                for (Moves moves : Moves.values()) {
-                    if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
-                    CubeState newState = currentState.applyMove(moves.value);
-                    if (!visitedFront.contains(newState.current)) {
-                        visitedFront.add(newState.current);
-                        queueBFS.add(newState);
-                    }
+                CubeState newState = current.applyMove(move.value);
+                if (visitedFront.add(newState.current)) {
+                    queue.add(newState);
                 }
             }
-            semaphore.acquireUninterruptibly();
-            int count = 0;
-            for (CubeState dlsNode : frontierNodesDLS) {
-                count++;
-                System.out.println(count);
-                try {
-                    String result = executorService.submit(new LimitDfsThread(dlsNode, limits)).get();
-                    if (!noResultStrings.contains(result)) {
-                        return result;
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
-            }
-            return "SOLUTION NOT FOUND";
         }
+
+        System.out.println(frontierNodes.size() + " nós na fronteira para DLS sequencial...");
+        for (CubeState dlsNode : frontierNodes) {
+            String result = limitDFS(dlsNode, BFS_DLS_LIMIT);
+            if (!NO_RESULT_STRINGS.contains(result)) {
+                return result;
+            }
+        }
+        return "SOLUTION NOT FOUND";
     }
 
-    static class LimitDfsThread implements Callable<String> {
-
-        private CubeState currentState = null;
-        private final int remainingDepth;
-
-        public LimitDfsThread(CubeState currentState, int remainingDepth) {
-            this.currentState = currentState;
-            this.remainingDepth = remainingDepth;
-        }
-
-        @Override
-        public String call() throws Exception {
-            return limitDFS();
-        }
-
-        public String limitDFS() throws ExecutionException, InterruptedException {
-            int frontCost = currentState.totalCost;
-            //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
-            StringBuilder fullPath =  new StringBuilder();
-            if (remainingDepth == 0) {
-                if(hashMap.containsKey(frontCost)) {
-                    for (CubeState backState : hashMap.get(frontCost)) {
-                        if (currentState.faceCost == backState.faceCost) {
-                            fullPath.append(currentState.path);
-                            fullPath.append(backState.getBackwardsPath());
-                            System.out.println("RETURN!!!!!!!");
-                            executorService.shutdown();
-                            return fullPath.toString();
-                        }
+    private static String limitDFS(CubeState currentNode, int remainingDepth) {
+        if (remainingDepth == 0) {
+            int frontCost = currentNode.totalCost;
+            if (hashMap.containsKey(frontCost)) {
+                for (CubeState backState : hashMap.get(frontCost)) {
+                    if (Arrays.equals(currentNode.faceCost, backState.faceCost)) {
+                        return currentNode.path + getBackwardsPath(backState.path);
                     }
                 }
-                else {
-                    return "NO MATCHES";
-                }
             }
-            for (Moves moves : Moves.values()) {
-                if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
-                CubeState newState = currentState.applyMove(moves.value);
-                String result = limitDFS(newState,remainingDepth-1);
-                if (!noResultStrings.contains(result)) {
-                    executorService.shutdown();
-                    return result;
-                }
-            }
-            return "NO SOLUTION FOR THIS PATH";
+            return "NO MATCHES";
         }
 
-        public String limitDFS(CubeState currentState, int remainingDepth) throws ExecutionException, InterruptedException {
-            int frontCost = currentState.totalCost;
-            //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
-            StringBuilder fullPath =  new StringBuilder();
-            if (remainingDepth == 0) {
-                if(hashMap.containsKey(frontCost)) {
-                    for (CubeState backState : hashMap.get(frontCost)) {
-                        if (currentState.faceCost == backState.faceCost) {
-                            fullPath.append(currentState.path);
-                            fullPath.append(backState.getBackwardsPath());
-                            System.out.println("RETURN!!!!!!!");
-                            executorService.shutdown();
-                            return fullPath.toString();
-                        }
-                    }
-                }
-                else {
-                    return "NO MATCHES";
-                }
+        for (Moves move : Moves.values()) {
+            
+             if (isSameFaceAsLast(currentNode.path, move.value)) {
+                continue;
             }
-            for (Moves moves : Moves.values()) {
-                if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
-                CubeState newState = currentState.applyMove(moves.value);
-                String result = limitDFS(newState,remainingDepth-1);
-                //result = limitDFS(newState,remainingDepth-1);
-                if (!noResultStrings.contains(result)) {
-                    executorService.shutdown();
-                    return result;
-                }
+            CubeState newState = currentNode.applyMove(move.value);
+            String result = limitDFS(newState, remainingDepth - 1);
+            if (!NO_RESULT_STRINGS.contains(result)) {
+                return result;
             }
-            return "NO SOLUTION FOR THIS PATH";
         }
+        return "NO SOLUTION FOR THIS PATH";
+    }
+    private static boolean isSameFaceAsLast(String currentPath, String nextMove) {
+        if (currentPath.isEmpty()) {
+            return false;
+        }
+
+        char lastMoveFace = currentPath.charAt(currentPath.length() - 1);
+        if (lastMoveFace == '\'' || lastMoveFace == '2') {
+            lastMoveFace = currentPath.charAt(currentPath.length() - 2);
+        }
+
+        return lastMoveFace == nextMove.charAt(0);
     }
 
-}
+    public static String getBackwardsPath(String path) {
+        if (path == null || path.isEmpty()) return "";
+        List<String> moves = new ArrayList<>();
+        String tempPath = path;
+        while (!tempPath.isEmpty()) {
+            String move = tempPath.substring(0, 1);
+            tempPath = tempPath.substring(1);
+            if (!tempPath.isEmpty() && (tempPath.charAt(0) == '\'' || tempPath.charAt(0) == '2')) {
+                move += tempPath.charAt(0);
+                tempPath = tempPath.substring(1);
+            }
+            moves.add(move);
+        }
+        StringBuilder invertedPath = new StringBuilder();
+        for (int i = moves.size() - 1; i >= 0; i--) {
+            String move = moves.get(i);
+            switch (move) {
+                case "F": invertedPath.append("F'"); break;
+                case "F'": invertedPath.append("F"); break;
+                case "U": invertedPath.append("U'"); break;
+                case "U'": invertedPath.append("U"); break;
+                case "L": invertedPath.append("L'"); break;
+                case "L'": invertedPath.append("L"); break;
+                case "R": invertedPath.append("R'"); break;
+                case "R'": invertedPath.append("R"); break;
+                case "D": invertedPath.append("D'"); break;
+                case "D'": invertedPath.append("D"); break;
+                case "B": invertedPath.append("B'"); break;
+                case "B'": invertedPath.append("B"); break;
+                default: invertedPath.append(move); break;
+            }
+        }
+        return invertedPath.toString();
+    }
 
+    private static String getLastMove(String path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        char lastChar = path.charAt(path.length() - 1);
+        if (lastChar == '\'' || lastChar == '2') {
+            if (path.length() < 2) return null;
+            return path.substring(path.length() - 2);
+        }
+        return String.valueOf(lastChar);
+    }
+
+    private static boolean isRedundantMove(String currentPath, String nextMove) {
+        String lastMove = getLastMove(currentPath);
+        if (lastMove == null) {
+            return false;
+        }
+        // Verifica se os movimentos são na mesma face (ex: F, F', F2)
+        if (lastMove.charAt(0) == nextMove.charAt(0)) {
+            return true;
+        }
+        return false;
+    }
+
+} 
