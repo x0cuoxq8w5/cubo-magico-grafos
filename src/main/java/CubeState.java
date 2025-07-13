@@ -1,15 +1,19 @@
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class CubeState {
     Cube current;
     String path;
     int totalCost;
-    int[] faceCost = new int[6]; //forçando a ser limitado
+    int[] faceCost;
+    String lastMove;
+    int depth; 
 
     //Calcula o custo de cada face individualmente, o custo é o numero de adesivos que nao correspondem a cor do centro
     // retorna um array de 6 inteiros onde cada posicao é o custa da face correspondente
-    public int[] calculateFaceCost() {
+     public int[] calculateFaceCost() {
         int[] costs = new int[6];
         byte[] currentState = this.current.state;
 
@@ -18,7 +22,7 @@ public class CubeState {
             byte centerColor = currentState[centerIndex];
             int misplacedCount = 0;
             for(int i = 0; i < 9; i++){
-                int stickerIndex = (faceIndex * 9) + i;  // Pula para o início do bloco da face (faceIndex * 9) e pega o adesivo central (+ 4).
+                int stickerIndex = (faceIndex * 9) + i;
                 if(currentState[stickerIndex]!= centerColor){
                     misplacedCount++;
                 }
@@ -30,82 +34,85 @@ public class CubeState {
 
     //Calcula a soma total de todos os custos de todas as faces, um cubo resolvido tem custo = 0
     public int calculateCost() {
-         int[] faceCosts = (this.faceCost != null && this.faceCost.length == 6) ? this.faceCost : calculateFaceCost();
-         int total = 0;
-         for(int cost : faceCosts){
+        int[] faceCosts = (this.faceCost != null && this.faceCost.length == 6) ? this.faceCost : calculateFaceCost();
+        int total = 0;
+        for(int cost : faceCosts){
             total += cost;
-         }
+        }
         return total;
     }
 
+
     private static final HashSet<Character> modifiers = new HashSet<>(Set.of('\'','2'));
 
-    public CubeState(Cube current, String path) {
+     public CubeState(Cube current, String path, String lastMove, int depth) {
         this.current = current;
         this.path = path;
+        this.lastMove = lastMove;
+        this.depth = depth;
         this.faceCost = this.calculateFaceCost();
         this.totalCost = this.calculateCost();
     }
-
-    public CubeState(Cube current) {
-        this.current = current;
-        this.path = "";
-        this.faceCost = this.calculateFaceCost();
-        this.totalCost = this.calculateCost();
+      public CubeState(Cube current) {
+        this(current, "", null, 0); // O estado inicial tem profundidade 0
     }
 
     public int getDepth() {
-        int counter = 0;
-        String workingPath = this.path;
-        while (workingPath.length() > 1) {
-            if(modifiers.contains(workingPath.charAt(1))) {
-                workingPath = workingPath.substring(2);
-            }
-            else {
-                workingPath = workingPath.substring(1);
-            }
-            counter++;
-        }
-        return counter;
+        return this.depth;
     }
 
-    public CubeState applyMove(String move) {
+     public CubeState applyMove(String move) {
         Cube cube = this.current.applyMove(move);
-        String path = this.path+move;
-        return new CubeState(cube,path);
+        String newPath = this.path + move;
+        int newDepth = this.depth + 1; 
+        return new CubeState(cube, newPath, move, newDepth);
     }
+
 
 
     public String getBackwardsPath() {
-        StringBuilder backwardsPath =  new StringBuilder();
-        String workingPath = this.path;
-        while (!workingPath.isEmpty()) {
-            if (modifiers.contains(workingPath.charAt(workingPath.length()-1))) {
-                backwardsPath.append(workingPath.substring(workingPath.length()-2));
-                workingPath = workingPath.substring(0, workingPath.length()-2);
-            }
-            else {
-                backwardsPath.append(workingPath.substring(workingPath.length()-1));
-                workingPath = workingPath.substring(0, workingPath.length()-1);
-            }
+        if (path == null || path.isEmpty()) {
+            return "";
         }
-        return backwardsPath.toString();
-    }
+        List<String> moves = new ArrayList<>();
+        String tempPath = this.path;
+        while (!tempPath.isEmpty()) {
+            String move = tempPath.substring(0, 1);
+            tempPath = tempPath.substring(1);
+            if (!tempPath.isEmpty() && (tempPath.charAt(0) == '\'' || tempPath.charAt(0) == '2')) {
+                move += tempPath.charAt(0);
+                tempPath = tempPath.substring(1);
+            }
+            moves.add(move);
+        }
 
-    public boolean isLastMoveSameType(Moves moves) {
-        String last;
-        char type;
-        if (this.path.length() >= 2) {
-            last = this.path.substring(this.path.length() - 2);
-            if(modifiers.contains(last.charAt(1))) type = last.charAt(0);
-            else type = last.charAt(1);
+    StringBuilder invertedPath = new StringBuilder();
+    for (int i = moves.size() - 1; i >= 0; i--) {
+        String move = moves.get(i);
+        switch (move) {
+            case "F": invertedPath.append("F'"); break;
+            case "F'": invertedPath.append("F"); break;
+            case "U": invertedPath.append("U'"); break;
+            case "U'": invertedPath.append("U"); break;
+            case "L": invertedPath.append("L'"); break;
+            case "L'": invertedPath.append("L"); break;
+            case "R": invertedPath.append("R'"); break;
+            case "R'": invertedPath.append("R"); break;
+            case "D": invertedPath.append("D'"); break;
+            case "D'": invertedPath.append("D"); break;
+            case "B": invertedPath.append("B'"); break;
+            case "B'": invertedPath.append("B"); break;
+            default: invertedPath.append(move); break; 
         }
-        else if (!this.path.isEmpty()) {
-            type = this.path.charAt(0);
-        }
-        else {
+    }
+    return invertedPath.toString();
+}
+    public boolean isLastMoveSameType(Moves nextMove) {
+        if (this.lastMove == null) {
             return false;
         }
-        return moves.value.charAt(0) == type;
+        // Compara apenas o primeiro caractere (F, U, L, etc.)
+        return this.lastMove.charAt(0) == nextMove.value.charAt(0);
     }
+
 }
