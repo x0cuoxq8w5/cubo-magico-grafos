@@ -155,11 +155,43 @@ public class Searches {
             for (Moves moves : Moves.values()) {
                 if (currentState.isLastMoveSameType(moves)) continue;
                 CubeState newState = currentState.applyMove(moves.value);
-                Future<String> result = executorService.submit(new LimitDfsThread(newState,remainingDepth-1));
+                String result = limitDFS(newState,remainingDepth-1);
+                if (!noResultStrings.contains(result)) {
+                    executorService.shutdown();
+                    return result;
+                }
+            }
+            return "NO SOLUTION FOR THIS PATH";
+        }
+
+        public String limitDFS(CubeState currentState, int remainingDepth) throws ExecutionException, InterruptedException {
+            int frontCost = currentState.totalCost;
+            //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
+            StringBuilder fullPath =  new StringBuilder();
+            if (remainingDepth == 0) {
+                if(hashMap.containsKey(frontCost)) {
+                    for (CubeState backState : hashMap.get(frontCost)) {
+                        if (currentState.faceCost == backState.faceCost) {
+                            fullPath.append(currentState.path);
+                            fullPath.append(backState.getBackwardsPath());
+                            System.out.println("RETURN!!!!!!!");
+                            executorService.shutdown();
+                            return fullPath.toString();
+                        }
+                    }
+                }
+                else {
+                    return "NO MATCHES";
+                }
+            }
+            for (Moves moves : Moves.values()) {
+                if (currentState.isLastMoveSameType(moves)) continue;
+                CubeState newState = currentState.applyMove(moves.value);
+                String result = limitDFS(newState,remainingDepth-1);
                 //result = limitDFS(newState,remainingDepth-1);
-                if (!noResultStrings.contains(result.get())) {
-                    executorService.shutdownNow();
-                    return result.get();
+                if (!noResultStrings.contains(result)) {
+                    executorService.shutdown();
+                    return result;
                 }
             }
             return "NO SOLUTION FOR THIS PATH";
