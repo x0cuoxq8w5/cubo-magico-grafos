@@ -9,7 +9,7 @@ public class Searches {
     static HashSet<Cube> visitedBack = new HashSet<>();
     static final HashSet<String> noResultStrings =  new HashSet<>(Set.of("SOLUTION NOT FOUND","NO MATCHES","NO SOLUTION FOR THIS PATH"));
     static Semaphore semaphore = new Semaphore(1);
-    static ExecutorService executorService = Executors.newFixedThreadPool(10); //mudar caso necessario
+    static ExecutorService executorService = Executors.newFixedThreadPool(8); //mudar caso necessario
 
     public static String solveCubeParallelBidirectional(CubeState scrambled) throws Exception {
         System.out.println("Comecou...");
@@ -53,7 +53,7 @@ public class Searches {
                 if(!hashMap.containsKey(cost)) hashMap.put(cost, new LinkedList<CubeState>());
                 hashMap.get(cost).add(currentCubeState);
                 for (Moves moves : Moves.values()) {
-                    CubeState newState = currentCubeState.applyMove(moves.toString());
+                    CubeState newState = currentCubeState.applyMove(moves.value);
                     if (!visitedBack.contains(newState.current)) {
                         visitedBack.add(newState.current);
                         queueBFS.add(newState);
@@ -97,7 +97,7 @@ public class Searches {
                     continue;
                 }
                 for (Moves moves : Moves.values()) {
-                    CubeState newState = currentState.applyMove(moves.toString());
+                    CubeState newState = currentState.applyMove(moves.value);
                     if (!visitedFront.contains(newState.current)) {
                         visitedFront.add(newState.current);
                         queueBFS.add(newState);
@@ -141,24 +141,24 @@ public class Searches {
                             fullPath.append(currentState.path);
                             fullPath.append(backState.getBackwardsPath());
                             System.out.println("RETURN!!!!!!!");
+                            executorService.shutdown();
                             return fullPath.toString();
                         }
                     }
                 }
                 else {
-                    System.out.println("NO MATCH");
                     return "NO MATCHES";
                 }
             }
             for (Moves moves : Moves.values()) {
-                CubeState newState = currentState.applyMove(moves.toString());
+                CubeState newState = currentState.applyMove(moves.value);
                 Future<String> result = executorService.submit(new LimitDfsThread(newState,remainingDepth-1));
                 //result = limitDFS(newState,remainingDepth-1);
                 if (!noResultStrings.contains(result.get())) {
+                    executorService.shutdownNow();
                     return result.get();
                 }
             }
-            System.out.println("NO SOLUTION");
             return "NO SOLUTION FOR THIS PATH";
         }
     }
