@@ -82,6 +82,7 @@ public class Searches {
             queueBFS.add(cubeState);
             visitedFront.add(cubeState.current);
             LinkedList<CubeState> frontierNodesDLS = new LinkedList<>();
+            CubeState temp = null;
             while (!queueBFS.isEmpty()) {
                 int currentDepth;
                 CubeState currentState = queueBFS.pop();
@@ -100,10 +101,16 @@ public class Searches {
                     if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
                     CubeState newState = currentState.applyMove(moves.value);
                     if (!visitedFront.contains(newState.current)) {
+                        if(Objects.equals(newState.path, "FUFUF")) {
+                            temp = newState;
+                        }
                         visitedFront.add(newState.current);
                         queueBFS.add(newState);
                     }
                 }
+            }
+            if (temp != null) {
+                frontierNodesDLS.push(temp);
             }
             semaphore.acquireUninterruptibly();
             int counter = 0;
@@ -119,8 +126,9 @@ public class Searches {
             int frontCost = currentState.totalCost;
             //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
             StringBuilder fullPath =  new StringBuilder();
+            if (currentState.totalCost == 0) return currentState.path;
             if (remainingDepth == 0) {
-                if(hashMap.containsKey(frontCost)) {
+                if (hashMap.containsKey(frontCost)) {
                     for (CubeState backState : hashMap.get(frontCost)) {
                         if (currentState.faceCost == backState.faceCost) {
                             fullPath.append(currentState.path);
@@ -129,11 +137,10 @@ public class Searches {
                             return fullPath.toString();
                         }
                     }
-                }
-                else {
+                } else {
                     return "NO MATCHES";
+                    }
                 }
-            }
             for (Moves moves : Moves.values()) {
                 if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
                 CubeState newState = currentState.applyMove(moves.value);
