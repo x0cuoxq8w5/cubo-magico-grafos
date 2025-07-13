@@ -57,14 +57,14 @@ public class Cube {
         for (int i = 0; i < 4; i++) {
             int rightinit;
             int switchstep;
-            if (step[i] > 0 || step[(i+1)%4] > 0) {
+            //if (step[i] > 0 || step[(i+1)%4] > 0) {
                 rightinit = init[(i+1) % 4];
                 switchstep = 1;
-            }
-            else {
+            //}
+            /*else {
                 rightinit = init[(i+1)%4]+step[(i+1)%4]*2;
                 switchstep = -1;
-            }
+            }*/
             for (int j = 0; j < 3; j++) {
                 newstate[face[i] * 9 + step[i] * j + init[i]] = state[face[(i + 1) % 4] * 9 + step[(i + 1) % 4] * j * switchstep + rightinit];
             }

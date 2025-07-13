@@ -9,7 +9,6 @@ public class Searches {
     static HashSet<Cube> visitedBack = new HashSet<>();
     static final HashSet<String> noResultStrings =  new HashSet<>(Set.of("SOLUTION NOT FOUND","NO MATCHES","NO SOLUTION FOR THIS PATH"));
     static Semaphore semaphore = new Semaphore(1);
-    static ExecutorService executorService = Executors.newFixedThreadPool(8); //mudar caso necessario
 
     public static String solveCubeParallelBidirectional(CubeState scrambled) throws Exception {
         System.out.println("Comecou...");
@@ -109,71 +108,19 @@ public class Searches {
             semaphore.acquireUninterruptibly();
             int count = 0;
             for (CubeState dlsNode : frontierNodesDLS) {
-                count++;
-                System.out.println(count);
-                try {
-                    String result = executorService.submit(new LimitDfsThread(dlsNode, limits)).get();
-                    if (!noResultStrings.contains(result)) {
-                        return result;
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
+                String result = limitDFS(dlsNode,limits);
+                System.out.println(result);
+                if (!noResultStrings.contains(result)) return result;
             }
             return "SOLUTION NOT FOUND";
-        }
-    }
-
-    static class LimitDfsThread implements Callable<String> {
-
-        private CubeState currentState = null;
-        private final int remainingDepth;
-
-        public LimitDfsThread(CubeState currentState, int remainingDepth) {
-            this.currentState = currentState;
-            this.remainingDepth = remainingDepth;
-        }
-
-        @Override
-        public String call() throws Exception {
-            return limitDFS();
-        }
-
-        public String limitDFS() throws ExecutionException, InterruptedException {
-            int frontCost = currentState.totalCost;
-            //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
-            StringBuilder fullPath =  new StringBuilder();
-            if (remainingDepth == 0) {
-                if(hashMap.containsKey(frontCost)) {
-                    for (CubeState backState : hashMap.get(frontCost)) {
-                        if (currentState.faceCost == backState.faceCost) {
-                            fullPath.append(currentState.path);
-                            fullPath.append(backState.getBackwardsPath());
-                            System.out.println("RETURN!!!!!!!");
-                            executorService.shutdown();
-                            return fullPath.toString();
-                        }
-                    }
-                }
-                else {
-                    return "NO MATCHES";
-                }
-            }
-            for (Moves moves : Moves.values()) {
-                if (currentState.isLastMoveSameType(moves) || currentState.isLastTwoIndependent(moves)) continue;
-                CubeState newState = currentState.applyMove(moves.value);
-                String result = limitDFS(newState,remainingDepth-1);
-                if (!noResultStrings.contains(result)) {
-                    executorService.shutdown();
-                    return result;
-                }
-            }
-            return "NO SOLUTION FOR THIS PATH";
         }
 
         public String limitDFS(CubeState currentState, int remainingDepth) throws ExecutionException, InterruptedException {
             int frontCost = currentState.totalCost;
             //System.out.println("Busca DFS... Profundidade: " + remainingDepth);
+            if(currentState.path.contains("FUFU")) {
+                System.out.println("abababababa");
+            }
             StringBuilder fullPath =  new StringBuilder();
             if (remainingDepth == 0) {
                 if(hashMap.containsKey(frontCost)) {
@@ -182,7 +129,6 @@ public class Searches {
                             fullPath.append(currentState.path);
                             fullPath.append(backState.getBackwardsPath());
                             System.out.println("RETURN!!!!!!!");
-                            executorService.shutdown();
                             return fullPath.toString();
                         }
                     }
@@ -197,12 +143,12 @@ public class Searches {
                 String result = limitDFS(newState,remainingDepth-1);
                 //result = limitDFS(newState,remainingDepth-1);
                 if (!noResultStrings.contains(result)) {
-                    executorService.shutdown();
                     return result;
                 }
             }
             return "NO SOLUTION FOR THIS PATH";
         }
+
     }
 
 }
