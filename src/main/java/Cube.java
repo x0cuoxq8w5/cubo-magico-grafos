@@ -53,6 +53,24 @@ public class Cube {
         }
     }
 
+    public void rotateColumns(int[] face, int[] step, int[] init, byte[] newstate) {
+        for (int i = 0; i < 4; i++) {
+            int rightinit;
+            int switchstep;
+            if (step[i] > 0 || step[(i+1)%4] > 0) {
+                rightinit = init[(i+1) % 4];
+                switchstep = 1;
+            }
+            else {
+                rightinit = init[(i+1)%4]+step[(i+1)%4]*2;
+                switchstep = -1;
+            }
+            for (int j = 0; j < 3; j++) {
+                newstate[face[i] * 9 + step[i] * j + init[i]] = state[face[(i + 1) % 4] * 9 + step[(i + 1) % 4] * j * switchstep + rightinit];
+            }
+        }
+    }
+
     public Cube rotateFrontClockwise() {
         byte[] newState = this.state.clone();
 
@@ -61,8 +79,11 @@ public class Cube {
         newState[21] = state[25]; newState[22] = state[22]; newState[23] = state[19];
         newState[24] = state[26]; newState[25] = state[23]; newState[26] = state[20];*/
         rotateFace(newState,Faces.FRONT.value);
-
-        // Guardamos a face do Topo para não sobrescrevê-la
+        int[] faces = {Faces.UP.value, Faces.LEFT.value, Faces.DOWN.value, Faces.RIGHT.value};
+        int[] steps = {1,-3,-1,3};
+        int[] inits = {6,8,2,0};
+        rotateColumns(faces,steps,inits,newState);
+        /*// Guardamos a face do Topo para não sobrescrevê-la
         byte tempUp1 = state[6];
         byte tempUp2 = state[7];
         byte tempUp3 = state[8];
@@ -85,12 +106,12 @@ public class Cube {
         // Topo (temp) -> Direita (coluna esq)
         newState[27] = tempUp1;
         newState[30] = tempUp2;
-        newState[33] = tempUp3;
+        newState[33] = tempUp3;*/
 
         return new Cube(newState);
     }
     public Cube rotateFrontAntiClockwise() {
-        return rotateFront180().rotateFrontClockwise();
+        return rotateFrontClockwise().rotateFrontClockwise().rotateFrontClockwise();
     }
     public Cube rotateFront180() {
         return this.rotateFrontClockwise().rotateFrontClockwise();
@@ -103,9 +124,12 @@ public class Cube {
         newState[3] = state[7]; newState[4] = state[4]; newState[5] = state[1];
         newState[6] = state[8]; newState[7] = state[5]; newState[8] = state[2];*/
         rotateFace(newState,Faces.UP.value);
+        int[] faces = {Faces.LEFT.value, Faces.FRONT.value, Faces.RIGHT.value, Faces.BACK.value};
+        int[] steps = {1,1,1,1};
+        int[] inits = {0,0,0,0};
 
-
-        byte tempF1 = state[27];
+        rotateColumns(faces, steps, inits, newState);
+        /*byte tempF1 = state[27];
         byte tempF2 = state[28];
         byte tempF3 = state[29];
 
@@ -127,7 +151,7 @@ public class Cube {
         // Direita (temp) -> Frente
         newState[18] = tempF1;
         newState[19] = tempF2;
-        newState[20] = tempF3;
+        newState[20] = tempF3;*/
 
         return new Cube(newState);
     }
@@ -151,9 +175,12 @@ public class Cube {
         newState[34] = state[32];
         newState[35] = state[29];*/
         rotateFace(newState,Faces.RIGHT.value);
+        int[] faces = {Faces.UP.value,Faces.FRONT.value,Faces.DOWN.value,Faces.BACK.value};
+        int[] steps = {3,3,3,-3};
+        int[] offsets = {2,2,2,6};
+        rotateColumns(faces, steps, offsets, newState);
 
-
-        byte u0 = state[2], u1 = state[5], u2 = state[8];
+        /*byte u0 = state[2], u1 = state[5], u2 = state[8];
 
         byte f0 = state[20], f1 = state[23], f2 = state[26];
 
@@ -177,7 +204,7 @@ public class Cube {
 
         newState[2] = f0;
         newState[5] = f1;
-        newState[8] = f2;
+        newState[8] = f2;*/
 
         return new Cube(newState);
     }
@@ -194,6 +221,9 @@ public class Cube {
         newState[15] = state[17];
         newState[16] = state[14];
         newState[17] = state[11];*/
+        int[] faces = {Faces.FRONT.value,Faces.UP.value,Faces.BACK.value,Faces.DOWN.value};
+        int[] steps = {3,3,-3,3};
+        int[] offsets = {0,0,8,0};
 
 
 
@@ -238,7 +268,11 @@ public class Cube {
     public Cube rotateDownClockwise() {
         byte[] newState = this.state.clone();
         rotateFace(newState,Faces.DOWN.value);
-        byte[]  l={state[15],state[16],state[17]},
+        int[] faces = {Faces.FRONT.value, Faces.LEFT.value, Faces.BACK.value, Faces.RIGHT.value};
+        int[] steps = {1,1,1,1};
+        int[] offsets = {6,6,6,6};
+        rotateColumns(faces,steps, offsets, newState);
+        /*byte[]  l={state[15],state[16],state[17]},
                 f={state[24],state[25],state[26]},
                 r={state[33],state[34],state[35]},
                 b={state[42],state[43],state[44]};
@@ -257,7 +291,7 @@ public class Cube {
 
         newState[42] = r[0];
         newState[43] = r[1];
-        newState[44] = r[2];
+        newState[44] = r[2];*/
 
         return new Cube(newState);
     }
@@ -270,7 +304,11 @@ public class Cube {
     public Cube rotateBackClockwise() {
         byte[] newState = this.state.clone();
         rotateFace(newState,Faces.BACK.value);
-        byte[]
+        int[] faces = {Faces.LEFT.value,Faces.UP.value,Faces.RIGHT.value,Faces.DOWN.value};
+        int[] steps = {-3,1,3,-1};
+        int[] offsets = {6,0,2,8};
+        rotateColumns(faces,steps,offsets,newState);
+        /*byte[]
                 l ={state[9],state[12],state[15]},
                 u ={state[0],state[1],state[2]},
                 r ={state[29],state[32],state[35]},
@@ -292,7 +330,7 @@ public class Cube {
 
         newState[51] = l[0];
         newState[52] = l[1];
-        newState[53] = l[2];
+        newState[53] = l[2];*/
         return new Cube(newState);
     }
     public Cube rotateBack180() {
